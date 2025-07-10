@@ -1,4 +1,8 @@
 import matplotlib
+import os
+import wandb
+from dotenv import load_dotenv
+
 from batchgenerators.utilities.file_and_folder_operations import join
 
 matplotlib.use('agg')
@@ -27,6 +31,20 @@ class nnUNetLogger(object):
         }
         self.verbose = verbose
         # shut up, this logging is great
+
+        # Setting up wandb:
+
+        # Loading api key and login
+        load_dotenv()
+        WANDB_API_KEY = os.getenv("WANDB_API_KEY")
+        wandb.login(key=WANDB_API_KEY)
+        
+        # creating wandb obj
+        self.wandb_run_obj = wandb.init(
+            project="BraTS2025-nnUNet",
+            name=os.environ["WANDB_RUN_NAME"],
+            notes = os.environ["WANDB_RUN_NOTES"]
+        )
 
     def log(self, key, value, epoch: int):
         """
@@ -101,3 +119,36 @@ class nnUNetLogger(object):
 
     def load_checkpoint(self, checkpoint: dict):
         self.my_fantastic_logging = checkpoint
+
+    def log_to_wandb(self, output_folder):
+        """
+        Log every tracked scalar and each class/region dice separately to wandb.
+        """
+        # infer current epoch
+        epoch = min(len(v) for v in self.my_fantastic_logging.values()) - 1
+
+        # base metrics
+        metrics = {
+            'train_loss':   self.my_fantastic_logging['train_losses'][epoch],
+            'val_loss':     self.my_fantastic_logging['val_losses'][epoch],
+            'mean_fg_dice': self.my_fantastic_logging['mean_fg_dice'][epoch],
+            'ema_fg_dice':  self.my_fantastic_logging['ema_fg_dice'][epoch],
+            'learning_rate':(
+                self.my_fantastic_logging['lrs'][epoch]
+            ),
+            'epoch_time_s': (
+                self.my_fantastic_logging['epoch_end_timestamps'][epoch]
+                - self.my_fantastic_logging['epoch_start_timestamps'][epoch]
+            )
+        }
+
+        # unpack per-class/region dice
+        dice_list = self.my_fantastic_logging['dice_per_class_or_region'][epoch]
+        for idx, dice_val in enumerate(dice_list):
+            metrics[f'dice_class_{idx}'] = dice_val
+
+        # push to wandb
+        self.wandb_run_obj.log(metrics, step=epoch)
+
+        if self.verbose:
+            print(f"[wandb] epoch {epoch} →", metrics)

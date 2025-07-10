@@ -22,7 +22,7 @@ cd .. # Be inside the nnUNetFrame directory
 
 # env_setup:
 # For this env_setup.sh script can be directly run
-source env_setup.sh
+source nnUNet/setup_guide/env_setup.sh
 
 # OR run this:
 export ORIGINAL_TRAIN_DATA="/home/azureuser/data/ASNR-MICCAI-BraTS2023-SSA-Challenge-TrainingData_V2"
@@ -35,6 +35,9 @@ export nnUNet_results=... # Absolute Path to nnUNet_results folder
 export WANDB_RUN_NAME="" # Run name for training experiment in wandb
 export WANDB_RUN_NOTES=""
 
+# Create .env file and add WANDB_API_KEY
+touch .env # and add WANDB_API_KEY
+WANDB_API_KEY = ""
 
 # Steps to run the actual scripts:
 
