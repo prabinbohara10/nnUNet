@@ -22,6 +22,9 @@ cd .. # Be inside the nnUNetFrame directory
 
 # env_setup:
 # For this env_setup.sh script can be directly run
+source env_setup.sh
+
+# OR run this:
 export ORIGINAL_TRAIN_DATA="/home/azureuser/data/ASNR-MICCAI-BraTS2023-SSA-Challenge-TrainingData_V2"
 export ORIGINAL_VAL_ONLY_DATA="/home/azureuser/data/BraTS2024-SSA-Challenge-ValidationData" # This is used just to run the prediction/ inference
 
@@ -40,7 +43,23 @@ nnUNetv2_plan_and_preprocess -d 1137 --verify_dataset_integrity # This is equiva
 # Puts the output in nnUNet_preprocessed
 
 # 3. 
-nnUNetv2_train 1137 3d_fullres 0 -tr nnUNetTrainer_5epochs
+nnUNetv2_train 1137 3d_fullres 0 -tr nnUNetTrainer_5epochs # different nnUNetTrainer class can be used accordingly.
+
+
+## Steps for prediction:
+
+# 1.
+# ORIGINAL_VAL_ONLY_DATA is used for this. Also, change the output folder name in this python script
+python nnUNet/nnunetv2/dataset_conversion/Dataset1137_BraTS23_val_only.py
+
+# 2.
+nnUNetv2_predict -i /home/azureuser/all_setups/nnUNetFrame/dataset/nnUNet_raw/Dataset1137_BraTS2023_SSA/val_imagesTr_best_model -o /home/azureuser/all_setups/nnUNetFrame/dataset/nnUNet_results/Dataset1137_BraTS2023_SSA/nnUNetTrainer__nnUNetPlans__2d/fold_0/validation_unknown_best_model -d 1137 -c 3d_fullres -f 0
+
+# 3. Converting from nnUNet back to BraTS2023 format
+# Change the input and output folder path
+python nnUNet/custom_scripts/convert_val_format.py 
+
+
 
 
 ```
