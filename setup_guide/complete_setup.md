@@ -32,6 +32,9 @@ export nnUNet_raw=... # Absolute Path to nnUNet_raw folder
 export nnUNet_preprocessed=... # Absolute Path to nnUNet_preprocessed folder
 export nnUNet_results=... # Absolute Path to nnUNet_results folder
 
+export WANDB_RUN_NAME="" # Run name for training experiment in wandb
+export WANDB_RUN_NOTES=""
+
 
 # Steps to run the actual scripts:
 
