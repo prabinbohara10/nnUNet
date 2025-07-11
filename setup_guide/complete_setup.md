@@ -51,6 +51,9 @@ nnUNetv2_plan_and_preprocess -d 1137 --verify_dataset_integrity # This is equiva
 
 # 3. 
 nnUNetv2_train 1137 3d_fullres 0 -tr nnUNetTrainer_5epochs # different nnUNetTrainer class can be used accordingly.
+# examples:
+- nnUNetTrainerDC_Focal_HD
+- nnUNetTrainerDC_Focal_HD_5epochs
 
 
 ## Steps for prediction:
