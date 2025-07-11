@@ -7,6 +7,7 @@ cd nnUNetFrame
 mkdir dataset
 cd dataset
 mkdir nnUNet_raw nnUNet_preprocessed nnUNet_results
+cd ..
 
 python -m venv venv
 source venv/bin/activate

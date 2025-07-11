@@ -1,6 +1,8 @@
 import torch
 from nnunetv2.training.loss.dice import SoftDiceLoss, MemoryEfficientSoftDiceLoss
 from nnunetv2.training.loss.robust_ce_loss import RobustCrossEntropyLoss, TopKLoss
+from nnunetv2.training.loss.focal_loss import FocalLoss
+from nnunetv2.training.loss.hausdorff import SoftHausdorffLoss
 from nnunetv2.utilities.helpers import softmax_helper_dim1
 from torch import nn
 
@@ -53,6 +55,24 @@ class DC_and_CE_loss(nn.Module):
             if self.weight_ce != 0 and (self.ignore_label is None or num_fg > 0) else 0
 
         result = self.weight_ce * ce_loss + self.weight_dice * dc_loss
+        
+        # Adding individual losses for logging
+        all_losses_dict = {
+            "description": "deepsupervision not applied for individial losses",
+            "all_losses": [
+                                {
+                                    "loss_name": "dice_loss",
+                                    "loss": dc_loss,
+                                    "loss_weight": self.weight_dice
+                                },
+                                {
+                                    "loss_name": "ce_loss",
+                                    "loss": ce_loss,
+                                    "loss_weight": self.weight_ce
+                                }
+                            ]
+                        }
+
         return result
 
 
@@ -102,6 +122,24 @@ class DC_and_BCE_loss(nn.Module):
         else:
             ce_loss = self.ce(net_output, target_regions)
         result = self.weight_ce * ce_loss + self.weight_dice * dc_loss
+        
+        # Adding individual losses for logging
+        all_losses_dict = {
+            "description": "deepsupervision not applied for individial losses",
+            "all_losses": [
+                                {
+                                    "loss_name": "dice_loss",
+                                    "loss": dc_loss,
+                                    "loss_weight": self.weight_dice
+                                },
+                                {
+                                    "loss_name": "ce_loss",
+                                    "loss": ce_loss,
+                                    "loss_weight": self.weight_ce
+                                }
+                            ]
+                        }
+
         return result
 
 
@@ -153,4 +191,104 @@ class DC_and_topk_loss(nn.Module):
             if self.weight_ce != 0 and (self.ignore_label is None or num_fg > 0) else 0
 
         result = self.weight_ce * ce_loss + self.weight_dice * dc_loss
+       
+        # Adding individual losses for logging
+        all_losses_dict = {
+            "description": "deepsupervision not applied for individial losses",
+            "all_losses": [
+                                {
+                                    "loss_name": "dice_loss",
+                                    "loss": dc_loss,
+                                    "loss_weight": self.weight_dice
+                                },
+                                {
+                                    "loss_name": "ce_loss",
+                                    "loss": ce_loss,
+                                    "loss_weight": self.weight_ce
+                                }
+                            ]
+                        }
+
+        return result
+
+class DC_Focal_Hausdorff_Loss(nn.Module):
+    """
+    Combined loss: Soft Dice + Focal + Soft Hausdorff.
+    Weights for each component need not sum to one.
+
+    Args:
+        dice_kwargs (dict): kwargs for SoftDiceLoss.
+        focal_kwargs (dict): kwargs for FocalLoss.
+        hausdorff_kwargs (dict): kwargs for SoftHausdorffLoss.
+        weight_dice (float): multiplier for dice loss.
+        weight_focal (float): multiplier for focal loss.
+        weight_hausdorff (float): multiplier for hausdorff loss.
+        ignore_label (int, optional): label value to ignore in loss.
+        dice_class: SoftDiceLoss class or variant.
+        focal_class: FocalLoss class or variant.
+        hausdorff_class: SoftHausdorffLoss class or variant.
+    """
+    def __init__(self,
+                 dice_kwargs: dict,
+                 focal_kwargs: dict,
+                 hausdorff_kwargs: dict,
+                 weight_dice: float = 1.0,
+                 weight_focal: float = 1.0,
+                 weight_hausdorff: float = 1.0,
+                 ignore_label: int = None,
+                 dice_class=SoftDiceLoss,
+                 focal_class=FocalLoss,
+                 hausdorff_class=SoftHausdorffLoss):
+        super().__init__()
+        self.weight_dice = weight_dice
+        self.weight_focal = weight_focal
+        self.weight_hausdorff = weight_hausdorff
+        self.ignore_label = ignore_label
+
+        # instantiate components
+        # dice and hausdorff expect softmaxed probabilities
+        dice_kwargs = dice_kwargs.copy()
+        hausdorff_kwargs = hausdorff_kwargs.copy()
+        if ignore_label is not None:
+            # ensure ignore_index passed to focal if needed
+            focal_kwargs = focal_kwargs.copy()
+            focal_kwargs['ignore_index'] = ignore_label
+
+        self.dc = dice_class(apply_nonlin=softmax_helper_dim1, **dice_kwargs)
+        self.focal = focal_class(**focal_kwargs)
+        self.hd = hausdorff_class(apply_nonlin=softmax_helper_dim1, **hausdorff_kwargs)
+
+    def forward(self, net_output: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        net_output: logits of shape (b, c, ...)
+        target: label map of shape (b, ...) or one-hot (b, c, ...)
+        """
+        # Prepare mask for ignore_label
+        mask = None
+        if self.ignore_label is not None:
+            mask = (target != self.ignore_label)
+            target = torch.where(mask, target, torch.tensor(0, device=target.device))
+
+        # Dice loss (requires one-hot target)
+        dice_loss = self.dc(net_output, target.unsqueeze(1) if target.ndim+1==net_output.ndim else target, loss_mask=mask)
+
+        # Focal loss (takes logits and class indices)
+        focal_targets = target if target.ndim+1==net_output.ndim else target
+        focal_loss = self.focal(net_output, focal_targets)
+
+        # Hausdorff loss
+        hausdorff_loss = self.hd(net_output, target)
+
+        # Weighted sum
+        result = (self.weight_dice * dice_loss
+                 + self.weight_focal * focal_loss
+                 + self.weight_hausdorff * hausdorff_loss)
+
+        # logging individual losses
+        self.last_losses = {
+            'dice_loss': dice_loss,
+            'focal_loss': focal_loss,
+            'hausdorff_loss': hausdorff_loss
+        }
+
         return result
