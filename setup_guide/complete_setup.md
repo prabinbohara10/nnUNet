@@ -33,6 +33,7 @@ export nnUNet_raw=... # Absolute Path to nnUNet_raw folder
 export nnUNet_preprocessed=... # Absolute Path to nnUNet_preprocessed folder
 export nnUNet_results=... # Absolute Path to nnUNet_results folder
 
+export WANDB_PROJECT_NAME=""
 export WANDB_RUN_NAME="" # Run name for training experiment in wandb
 export WANDB_RUN_NOTES=""
 
@@ -44,6 +45,9 @@ WANDB_API_KEY = ""
 
 # 1. For training: Run python Dataset1137_BraTS23.py
 python nnUNet/nnunetv2/dataset_conversion/Dataset1137_BraTS23.py # This formats the data as per the nnUNet and bring all the data to nnUNet_raw folder
+
+# for Brats2025-GLI
+python /nnUNet/nnunetv2/dataset_conversion/Dataset1136_BraTS25-GLI.py 
 
 # 2. 
 nnUNetv2_plan_and_preprocess -d 1137 --verify_dataset_integrity # This is equivalent to running nnUNetv2_extract_fingerprint, nnUNetv2_plan_experiment and nnUNetv2_preprocess (in that order).

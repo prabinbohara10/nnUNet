@@ -41,7 +41,7 @@ class nnUNetLogger(object):
         
         # creating wandb obj
         self.wandb_run_obj = wandb.init(
-            project="BraTS2025-nnUNet",
+            project=os.environ["WANDB_PROJECT_NAME"],
             name=os.environ["WANDB_RUN_NAME"],
             notes = os.environ["WANDB_RUN_NOTES"]
         )

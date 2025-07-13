@@ -5,5 +5,6 @@ export nnUNet_raw="/mnt/c/Machine/Research/Spark 2025/BraTS-2025-all_setups/nnUN
 export nnUNet_preprocessed="/mnt/c/Machine/Research/Spark 2025/BraTS-2025-all_setups/nnUNetFrame/dataset/nnUNet_preprocessed"
 export nnUNet_results="/mnt/c/Machine/Research/Spark 2025/BraTS-2025-all_setups/nnUNetFrame/dataset/nnUNet_results"
 
+export WANDB_PROJECT_NAME=""
 export WANDB_RUN_NAME="Test_wandb_setup" # Run name for training experiment in wandb
 export WANDB_RUN_NOTES="1st test for wandb setup is working or not"
